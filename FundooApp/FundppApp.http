@@ -1,0 +1,6 @@
+@FundppApp_HostAddress = http://localhost:5036
+
+GET {{FundppApp_HostAddress}}/
+Accept: application/json
+
+###
