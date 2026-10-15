@@ -1,4 +1,5 @@
 ﻿using Businesslayer.Interface;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using ModelLayer.Model;
 using Repository.Interface;
@@ -11,9 +12,11 @@ public class UserBl : IUserBl
     private readonly ITokenService _tokenService;
     private readonly IEmailService _emailService;
     private readonly ILogger<UserBl> _logger;
+    private readonly IPasswordHasher<UserDomainModel> _passwordHasher;
 
-    public UserBl(IUserRl userRl, ITokenService tokenService, IEmailService emailService, ILogger<UserBl> logger)
+    public UserBl(IUserRl userRl, ITokenService tokenService, IEmailService emailService, ILogger<UserBl> logger, IPasswordHasher<UserDomainModel> passwordHasher)
     {
+        _passwordHasher = passwordHasher;
         _logger = logger;
         _emailService = emailService;
         _tokenService = tokenService;
@@ -35,9 +38,9 @@ public class UserBl : IUserBl
             FirstName = userModel.Firstname,
             LastName = userModel.Lastname,
             Email = userModel.Email,
-            Password = userModel.Password,
             ContactNumber = userModel.ContactNumber
         };
+        domainModel.Password = _passwordHasher.HashPassword(domainModel, userModel.Password);
 
         var saved = await _userRl.RegisterUser(domainModel);
         if (saved == null)
@@ -57,7 +60,7 @@ public class UserBl : IUserBl
         _logger.LogInformation("Login attempt for {Email}", userReq.Email);
 
         var user = await _userRl.LoginUser(userReq.Email);
-        if (user == null || user.Password != userReq.Password)
+        if (user == null || _passwordHasher.VerifyHashedPassword(user, user.Password, userReq.Password) == PasswordVerificationResult.Failed)
         {
             _logger.LogWarning("Invalid login credentials for {Email}", userReq.Email);
             return null;
@@ -116,7 +119,7 @@ public class UserBl : IUserBl
             return false;
         }
 
-        user.Password = newPassword;
+        user.Password = _passwordHasher.HashPassword(user, newPassword);
 
         var result = await _userRl.SaveUser(user);
         if (result)

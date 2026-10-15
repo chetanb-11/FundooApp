@@ -19,6 +19,7 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
         builder.Services.AddOptions<JwtOptions>()
             .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
@@ -35,7 +36,7 @@ public class Program
                     ValidateIssuer = true,
                     ValidIssuer = jwt.Issuer,
                     ValidateAudience = false,
-                    
+
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
                     ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
@@ -49,24 +50,35 @@ public class Program
                 };
             });
         builder.Services.AddSingleton(TimeProvider.System);
-        
+
         builder.Services.AddDbContext<FunDooDbContext>(options =>
             options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
 
         builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-        
+
         builder.Services.AddScoped<IUserBl, UserBl>();
         builder.Services.AddScoped<IUserRl, UserRl>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IPasswordHasher<UserDomainModel>, PasswordHasher<UserDomainModel>>();
         builder.Services.AddControllers();
-        
-        
+
+
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
         var app = builder.Build();
+
+        app.UseExceptionHandler(errorApp =>
+        {
+            errorApp.Run(async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(new ResponseModel<string>
+                    { Success = false, Message = "An unexpected error occurred. Please try again later." });
+            });
+        });
 
         if (app.Environment.IsDevelopment())
         {
@@ -75,7 +87,7 @@ public class Program
         }
 
         app.UseHttpsRedirection();
-        
+
         app.UseAuthentication();
         app.UseAuthorization();
 
