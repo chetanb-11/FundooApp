@@ -54,6 +54,8 @@ public class UserBl : IUserBl
     }
 
     public async Task<bool> UserExistsAsync(string email) => await _userRl.UserExistsByEmail(email);
+    public async Task<bool> UserExistsByIdAsync(int userId) => await _userRl.UserExistsById(userId);
+    
 
     public async Task<LoginResponseDto?> LoginUser(UserLoginReq userReq)
     {

@@ -32,6 +32,12 @@ public class UserRl : IUserRl
         return entity == null ? null : ToDomain(entity);
     }
 
+    public async Task<bool> UserExistsById(int id)
+    {
+        var entity = await _dbContext.Users.AnyAsync(u => u.Id == id);
+        return entity;
+    }
+
     public async Task<UserDomainModel?> FindExistsByEmail(string email)
     {
         var entity = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -55,7 +61,6 @@ public class UserRl : IUserRl
         return await _dbContext.SaveChangesAsync() > 0;
     }
 
-    // ──────────── Private mapping helpers ────────────
 
     private static UserEntity ToEntity(UserDomainModel model)
     {

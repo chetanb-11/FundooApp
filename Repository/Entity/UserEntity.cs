@@ -6,17 +6,18 @@ public class UserEntity
 {
     [Required] [Key] public int Id { get; set; }
 
-    
-    [Required, MaxLength(50)] public string FirstName { get; set; }
 
-    [Required, MaxLength(50)] public string LastName { get; set; }
+    [Required, MaxLength(50)] public string FirstName { get; set; } = string.Empty;
+
+    [Required, MaxLength(50)] public string LastName { get; set; } = string.Empty;
 
     [Required, MaxLength(50)]
     [EmailAddress]
-    public string Email { get; set; }
+    public string Email { get; set; } = string.Empty;
 
     [Required, RegularExpression("^[0-9]{10}$")]
-    public string ContactNumber { get; set; }
+    public string ContactNumber { get; set; } = string.Empty;
 
-    [Required] public string Password { get; set; }
+    [Required] public string Password { get; set; } = string.Empty;
+    public ICollection<NoteEntity> Notes { get; set; } = new List<NoteEntity>();
 }

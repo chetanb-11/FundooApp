@@ -11,7 +11,8 @@ public class FunDooDbContext : DbContext
     }
 
     public DbSet<UserEntity> Users => Set<UserEntity>();
-
+    public DbSet<NoteEntity> Notes => Set<NoteEntity>();
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

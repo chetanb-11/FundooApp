@@ -14,6 +14,7 @@ namespace Businesslayer.Service;
 public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : ITokenService
 {
     private readonly JwtOptions _jwtOptions = options.Value;
+
     public string CreateAccessToken(UserDomainModel user)
     {
         var now = clock.GetUtcNow().UtcDateTime;
@@ -21,7 +22,6 @@ public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : IT
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            // new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email)
         };
 
@@ -35,7 +35,6 @@ public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : IT
             NotBefore = now,
             Expires = now.AddMinutes(_jwtOptions.AccessTokenMinutes),
             SigningCredentials = creds
-            
         };
         var tokenHandler = new JsonWebTokenHandler();
         var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -50,7 +49,7 @@ public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : IT
         {
             new(JwtRegisteredClaimNames.Email, email)
         };
-        var key = new SymmetricSecurityKey((Encoding.UTF8.GetBytes(_jwtOptions.ResetSigningKey)));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.ResetSigningKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -65,6 +64,7 @@ public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : IT
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return token;
     }
+
     public async Task<string?> ValidateTokenAndGetEmail(string token)
     {
         var handler = new JsonWebTokenHandler();
@@ -77,7 +77,7 @@ public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : IT
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.ResetSigningKey)),
             ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
-            
+
             RequireExpirationTime = true,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30)
@@ -90,7 +90,4 @@ public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : IT
         return email;
     }
 
-
-    public string Hash(string token)=>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }
