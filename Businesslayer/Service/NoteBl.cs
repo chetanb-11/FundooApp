@@ -8,15 +8,14 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl) : INoteBl
     private readonly IUserBl _userBl = userBl;
     private readonly INoteRl _noteRl = noteRl;
 
-    public async Task<bool> Create(string userId)
+    public async Task<bool> Create(NoteRequestModel noteRequestModel, string userId)
     {
         if (string.IsNullOrWhiteSpace(userId)) return false;
 
         int _userId = Convert.ToInt32(userId);
         var userExists = await _userBl.UserExistsByIdAsync(_userId);
         if (!userExists) return false;
-
-        return await _noteRl.Create(userId);
+        return await _noteRl.Create(noteRequestModel, userId);
     }
     public async Task<bool> Delete(string noteId, string userId)
     {

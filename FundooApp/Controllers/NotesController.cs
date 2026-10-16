@@ -12,7 +12,7 @@ public class NotesController(INoteBl noteBl):ControllerBase
     
     [Authorize]
     [HttpGet]
-    public async Task<IActionResult> CreateNode()
+    public async Task<IActionResult> CreateNode([FromBody]NoteRequestModel noteRequestModel)
     {
         var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue("Sub");
         if (string.IsNullOrWhiteSpace(userId))
@@ -20,7 +20,7 @@ public class NotesController(INoteBl noteBl):ControllerBase
             return Unauthorized();
         }
 
-        var result = await _noteBl.Create(userId);
+        var result = await _noteBl.Create(noteRequestModel, userId);
         return result ? Ok() : Forbid();
     }
 

@@ -9,9 +9,9 @@ public class NoteRl(FunDooDbContext dbContext) : INoteRl
 
     public async Task<bool> Create(int userId)
     {
-        return true;
+        var result = await _dbContext.Notes.AddAsync();
     }
-    public async Task<bool> Delete(int noteId, int userId)
+    public Task<bool> Delete(int noteId, int userId)
     {
         return true;
     }
