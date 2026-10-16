@@ -7,6 +7,5 @@ public interface ITokenService
     string CreateAccessToken(UserDomainModel user);
     public string? CreateResetPasswordToken(string email);
     public Task<string?> ValidateTokenAndGetEmail(string token);
-    (string Token, string Hash) CreateRefreshToken();
     string Hash(string token0);
 }

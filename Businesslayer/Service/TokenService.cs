@@ -86,16 +86,10 @@ public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : IT
         if (!result.IsValid)
             return null;
 
-        // Extract the email claim that was baked in during CreateResetPasswordToken
         var email = result.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
         return email;
     }
 
-    public (string Token, string Hash) CreateRefreshToken()
-    {
-        var token = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(64));
-        return (token, Hash(token));
-    }
 
     public string Hash(string token)=>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
