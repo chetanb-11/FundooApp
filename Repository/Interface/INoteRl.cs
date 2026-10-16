@@ -2,5 +2,6 @@
 
 public interface INoteRl
 {
-    public string Create();
+    public Task<bool> Create(int userId);
+    public Task<bool> Delete(int noteId, int userId);
 }

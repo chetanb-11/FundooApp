@@ -12,15 +12,25 @@ public class NotesController(INoteBl noteBl):ControllerBase
     
     [Authorize]
     [HttpGet]
-    public IActionResult CreateNode()
+    public async Task<IActionResult> CreateNode()
     {
-        // User.FindFirstValue(JwtRegisteredClaimNames.Email) ?? User.FindFirstValue("email");
         var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue("Sub");
-        var result = _noteBl.Create(userId);
-        return Ok();
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _noteBl.Create(userId);
+        return result ? Ok() : Forbid();
     }
-    
-    
-    
-    
+
+    public async Task<IActionResult> DeleteNode(int noteId){
+        var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue("Sub");
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+        var result = await _noteBl.Delete(noteId, userId);
+        return result ? Ok() : Forbid();
+    }
 }

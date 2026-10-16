@@ -5,10 +5,14 @@ namespace Repository.Service;
 
 public class NoteRl(FunDooDbContext dbContext) : INoteRl
 {
-    private FunDooDbContext _dbContext = dbContext;
-    
-    public string Create()
+    private readonly FunDooDbContext _dbContext = dbContext;
+
+    public async Task<bool> Create(int userId)
     {
-        var result = _dbContext.Notes.AddAsync()
+        return true;
+    }
+    public async Task<bool> Delete(int noteId, int userId)
+    {
+        return true;
     }
 }
