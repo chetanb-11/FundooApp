@@ -2,9 +2,11 @@ using System.Text;
 using BusinessLayer.Interface;
 using BusinessLayer.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using ModelLayer.Model;
 using ModelLayer.Model.Options;
 using NLog;
@@ -83,7 +85,39 @@ public class Program
             builder.Host.UseNLog();
 
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new OpenApiInfo()
+                {
+                    Title = "Fundoo app API",
+                    Version = "v1",
+                    Description = "Fundoo Notes & User Management with JWT Authentication"
+                });
+                
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    In = ParameterLocation.Header,
+                    Description = "Enter your JWT Bearer token to authorize requests"
+                });
+                
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                {
+                    {
+                        new OpenApiSecurityScheme()
+                        {
+                            Reference = new OpenApiReference()
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
 
             var app = builder.Build();
             log.Info("building app");
@@ -91,6 +125,13 @@ public class Program
             {
                 errorApp.Run(async context =>
                 {
+                    var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+                    if (exceptionFeature?.Error != null)
+                    {
+                        var exceptionLogger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+                        exceptionLogger.LogError(exceptionFeature.Error, "Unhandled exception occurred during request execution: {Message}", exceptionFeature.Error.Message);
+                    }
+
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     context.Response.ContentType = "application/json";
                     await context.Response.WriteAsJsonAsync(new ResponseModel<string>
@@ -101,7 +142,10 @@ public class Program
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fundoo App API v1");
+                });
             }
 
             app.UseHttpsRedirection();

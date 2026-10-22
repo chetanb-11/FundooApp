@@ -57,8 +57,6 @@ public class AuthController(IUserBl userBl, ILogger<AuthController> logger) : Co
     [Route("login")]
     public async Task<IActionResult> LoginUser([FromBody] UserLoginReq userReq)
     {
-        logger.LogInformation("trying to login {email}", userReq.Email);
-        
         var result = await userBl.LoginUser(userReq);
         if (result == null)
         {
