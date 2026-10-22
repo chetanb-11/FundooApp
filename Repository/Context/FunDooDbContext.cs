@@ -18,6 +18,12 @@ public class FunDooDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(FunDooDbContext).Assembly);
 
+        modelBuilder.Entity<NoteEntity>(e =>
+        {
+            e.Property(n => n.IsArchived).HasDefaultValue(false);
+            e.Property(n => n.IsTrashed).HasDefaultValue(false);
+        });
+        
         modelBuilder.Entity<UserEntity>()
             .HasIndex(u => u.Email)
             .IsUnique();

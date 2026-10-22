@@ -15,32 +15,44 @@ public class UserRl : IUserRl
         _dbContext = dbContext;
     }
 
-    public async Task<UserDomainModel?> RegisterUser(UserDomainModel user)
+    public async Task<UserDomainModel?> RegisterUserAsync(UserDomainModel user)
     {
         var entity = ToEntity(user);
 
-        await _dbContext.Users.AddAsync(entity);
-        await _dbContext.SaveChangesAsync();
-
-        return ToDomain(entity);
+        try
+        {
+            await _dbContext.Users.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
+            return ToDomain(entity);
+        }
+        catch (DbUpdateException)
+        {
+            return null; 
+        }
     }
 
-    public async Task<UserDomainModel?> LoginUser(string email)
+    public async Task<UserDomainModel?> LoginUserAsync(string email)
     {
         var entity =
-            await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+            await _dbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
         return entity == null ? null : ToDomain(entity);
     }
 
     public async Task<bool> UserExistsById(int id)
     {
-        var entity = await _dbContext.Users.AnyAsync(u => u.Id == id);
+        var entity = await _dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Id == id);
         return entity;
     }
 
     public async Task<UserDomainModel?> FindExistsByEmail(string email)
     {
-        var entity = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var entity = await _dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email == email);
         return entity == null ? null : ToDomain(entity);
     }
 
@@ -57,6 +69,7 @@ public class UserRl : IUserRl
         entity.Email = user.Email;
         entity.ContactNumber = user.ContactNumber;
         entity.Password = user.Password;
+        entity.Salt = user.Salt;
 
         return await _dbContext.SaveChangesAsync() > 0;
     }
@@ -72,6 +85,7 @@ public class UserRl : IUserRl
             Email = model.Email,
             ContactNumber = model.ContactNumber,
             Password = model.Password,
+            Salt = model.Salt
         };
     }
 

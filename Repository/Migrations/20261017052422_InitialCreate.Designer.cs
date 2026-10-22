@@ -11,8 +11,8 @@ using Repository.Context;
 namespace Repository.Migrations
 {
     [DbContext(typeof(FunDooDbContext))]
-    [Migration("20261016065508_AddUsersAndNotes")]
-    partial class AddUsersAndNotes
+    [Migration("20261017052422_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

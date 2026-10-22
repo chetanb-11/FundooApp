@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using Businesslayer.Interface;
+using BusinessLayer.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -11,18 +11,8 @@ namespace FundooApp.Controllers;
 
 [ApiController]
 [Route("api/fundoo/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController(IUserBl userBl, IPasswordService passwordService, ILogger<AuthController> logger) : ControllerBase
 {
-
-    private readonly IUserBl _userBl;
-    private readonly ILogger<AuthController> _logger;
-
-    public AuthController(IUserBl userBl, ILogger<AuthController> logger)
-    {
-        _logger = logger;
-        _userBl = userBl;
-    }
-
     [HttpGet]
     public IActionResult Welcome()
     {
@@ -30,22 +20,21 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
-    [HttpGet]
-    [Route("me")]
+    [HttpGet("me")]
     public IActionResult Me()
     {
         var email = User.FindFirstValue(JwtRegisteredClaimNames.Email) ?? User.FindFirstValue("email");
-        return Ok($"Hello from FundooApp, {email}");
+        return Ok(new ResponseModel<string> { Success = true, Message = "User retrieved", Data = email });
     }
 
     [HttpPost]
     [Route("register")]
     public async Task<IActionResult> RegisterUser([FromBody] UserRegistrationReq req)
     {
-        var result = await _userBl.RegisterUser(req);
+        var result = await userBl.RegisterUser(req);
         if (result == null)
         {
-            _logger.LogWarning("Registration failed for {Email}", req.Email);
+            logger.LogWarning("Registration failed for {Email}", req.Email);
             return BadRequest(new ResponseModel<UserResponseDto?>
             {
                 Success = false,
@@ -66,10 +55,10 @@ public class AuthController : ControllerBase
     [Route("login")]
     public async Task<IActionResult> LoginUser([FromBody] UserLoginReq userReq)
     {
-        var result = await _userBl.LoginUser(userReq);
+        var result = await userBl.LoginUser(userReq);
         if (result == null)
         {
-            _logger.LogWarning("Failed login attempt for {Email}", userReq.Email);
+            logger.LogWarning("Failed login attempt for {Email}", userReq.Email);
             return Unauthorized(new ResponseModel<LoginResponseDto?>
             {
                 Success = false,
@@ -90,7 +79,7 @@ public class AuthController : ControllerBase
     [Route("reset-password")]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest req)
     {
-        var result = await _userBl.ResetPassword(req.Token, req.NewPassword);
+        var result = await userBl.ResetPassword(req.Token, req.NewPassword);
         if (!result)
         {
             return BadRequest(new ResponseModel<string>
@@ -109,18 +98,18 @@ public class AuthController : ControllerBase
         });
     }
 
-    [HttpGet]
+    [HttpPost]
     [Route("forgot-password")]
-    public async Task<IActionResult> ForgetPassword(string email)
+    public async Task<IActionResult> ForgetPassword(ForgotPasswordRequest req)
     {
-        var result = await _userBl.ForgetPassword(email);
+        var result = await userBl.ForgetPassword(req.Email);
         if (!result)
         {
-            _logger.LogWarning("Forgot password requested for unregistered email {Email}", email);
+            logger.LogWarning("Forgot password requested for unregistered email {Email}", req.Email);
             return BadRequest(new ResponseModel<string>
             {
                 Success = false,
-                Message = "User with entered email does not exist",
+                Message = "If your email is registered, you will receive a password reset link shortly.",
                 Data = null!
             });
         }
@@ -129,7 +118,7 @@ public class AuthController : ControllerBase
         {
             Success = true,
             Message = "Email sent!",
-            Data = $"Reset link sent to {email}"
+            Data = $"Reset link sent to {req.Email}"
         });
     }
 }

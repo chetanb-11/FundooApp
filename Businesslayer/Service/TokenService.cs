@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Businesslayer.Interface;
+using BusinessLayer.Interface;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -9,7 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using ModelLayer.Model;
 using ModelLayer.Model.Options;
 
-namespace Businesslayer.Service;
+namespace BusinessLayer.Service;
 
 public class TokenService(IOptions<JwtOptions> options, TimeProvider clock) : ITokenService
 {

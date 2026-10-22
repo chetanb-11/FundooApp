@@ -18,6 +18,7 @@ public class UserEntity
     [Required, RegularExpression("^[0-9]{10}$")]
     public string ContactNumber { get; set; } = string.Empty;
 
-    [Required] public string Password { get; set; } = string.Empty;
-    public ICollection<NoteEntity> Notes { get; set; } = new List<NoteEntity>();
+    [Required] public byte[]? Password { get; set; }
+    [Required] public byte[]? Salt { get; set; }
+    public ICollection<NoteEntity> Notes { get; init; } = new List<NoteEntity>();
 }

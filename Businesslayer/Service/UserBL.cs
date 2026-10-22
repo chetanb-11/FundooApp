@@ -1,75 +1,80 @@
-﻿using Businesslayer.Interface;
+﻿using BusinessLayer.Interface;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using ModelLayer.Model;
+using Org.BouncyCastle.Asn1.X509;
 using Repository.Interface;
 
-namespace Businesslayer.Service;
+namespace BusinessLayer.Service;
 
-public class UserBl : IUserBl
+public class UserBl(
+    IUserRl userRl,
+    ITokenService tokenService,
+    IEmailService emailService,
+    ILogger<UserBl> logger,
+    IPasswordService passwordService)
+    : IUserBl
 {
-    private readonly IUserRl _userRl;
-    private readonly ITokenService _tokenService;
-    private readonly IEmailService _emailService;
-    private readonly ILogger<UserBl> _logger;
-    private readonly IPasswordHasher<UserDomainModel> _passwordHasher;
-
-    public UserBl(IUserRl userRl, ITokenService tokenService, IEmailService emailService, ILogger<UserBl> logger, IPasswordHasher<UserDomainModel> passwordHasher)
+    public async Task<UserResponseDto?> RegisterUser(UserRegistrationReq userReq)
     {
-        _passwordHasher = passwordHasher;
-        _logger = logger;
-        _emailService = emailService;
-        _tokenService = tokenService;
-        _userRl = userRl;
-    }
+        logger.LogInformation("Attempting registration for {Email}", userReq.Email);
 
-    public async Task<UserResponseDto?> RegisterUser(UserRegistrationReq userModel)
-    {
-        _logger.LogInformation("Attempting registration for {Email}", userModel.Email);
-
-        if (await _userRl.UserExistsByEmail(userModel.Email))
+        if (string.IsNullOrWhiteSpace(userReq.Password))
         {
-            _logger.LogWarning("Registration failed: {Email} already exists", userModel.Email);
+            logger.LogWarning("Login failed: Empty password provided for {Email}", userReq.Email);
+            return null;
+        }
+        
+        if (await userRl.UserExistsByEmail(userReq.Email))
+        {
+            logger.LogWarning("Registration failed: {Email} already exists", userReq.Email);
             return null;
         }
 
         var domainModel = new UserDomainModel
         {
-            FirstName = userModel.Firstname,
-            LastName = userModel.Lastname,
-            Email = userModel.Email,
-            ContactNumber = userModel.ContactNumber
+            FirstName = userReq.Firstname,
+            LastName = userReq.Lastname,
+            Email = userReq.Email,
+            ContactNumber = userReq.ContactNumber
         };
-        domainModel.Password = _passwordHasher.HashPassword(domainModel, userModel.Password);
+        
+        (domainModel.Password, domainModel.Salt) = passwordService.Hash(userReq.Password);
 
-        var saved = await _userRl.RegisterUser(domainModel);
+        var saved = await userRl.RegisterUserAsync(domainModel);
         if (saved == null)
         {
-            _logger.LogError("Failed to save registered user {Email} to database", userModel.Email);
+            logger.LogError("Failed to save registered user {Email} to database", userReq.Email);
             return null;
         }
 
-        _logger.LogInformation("User {Email} registered successfully with ID {UserId}", userModel.Email, saved.Id);
+        logger.LogInformation("User {Email} registered successfully with ID {UserId}", userReq.Email, saved.Id);
         return MapToDto(saved);
     }
 
-    public async Task<bool> UserExistsAsync(string email) => await _userRl.UserExistsByEmail(email);
-    public async Task<bool> UserExistsByIdAsync(int userId) => await _userRl.UserExistsById(userId);
+    public async Task<bool> UserExistsAsync(string email) => await userRl.UserExistsByEmail(email);
+    public async Task<bool> UserExistsByIdAsync(int userId) => await userRl.UserExistsById(userId);
     
 
     public async Task<LoginResponseDto?> LoginUser(UserLoginReq userReq)
     {
-        _logger.LogInformation("Login attempt for {Email}", userReq.Email);
+        logger.LogInformation("Login attempt for {Email}", userReq.Email);
 
-        var user = await _userRl.LoginUser(userReq.Email);
-        if (user == null || _passwordHasher.VerifyHashedPassword(user, user.Password, userReq.Password) == PasswordVerificationResult.Failed)
+        if (string.IsNullOrWhiteSpace(userReq.Password))
         {
-            _logger.LogWarning("Invalid login credentials for {Email}", userReq.Email);
+            logger.LogWarning("Login failed: Empty password provided for {Email}", userReq.Email);
+            return null;
+        }
+        
+        var user = await userRl.LoginUserAsync(userReq.Email);
+        if (user == null || user.Password == null || user.Salt == null || !passwordService.Verify(userReq.Password, user.Password, user.Salt))
+        {
+            logger.LogWarning("Invalid login credentials for {Email}", userReq.Email);
             return null;
         }
 
-        var token = _tokenService.CreateAccessToken(user);
-        _logger.LogInformation("User {Email} logged in successfully", userReq.Email);
+        var token = tokenService.CreateAccessToken(user);
+        logger.LogInformation("User {Email} logged in successfully", userReq.Email);
 
         return new LoginResponseDto
         {
@@ -80,54 +85,59 @@ public class UserBl : IUserBl
 
     public async Task<bool> ForgetPassword(string email)
     {
-        _logger.LogInformation("Forgot password requested for {Email}", email);
+        logger.LogInformation("Forgot password requested for {Email}", email);
 
-        var userExists = await _userRl.UserExistsByEmail(email);
+        var userExists = await userRl.UserExistsByEmail(email);
         if (!userExists)
         {
-            _logger.LogWarning("Forgot password requested for non-existent email {Email}", email);
+            logger.LogWarning("Forgot password requested for non-existent email {Email}", email);
             return false;
         }
 
-        var token = _tokenService.CreateResetPasswordToken(email);
+        var token = tokenService.CreateResetPasswordToken(email);
         if (token == null)
         {
-            _logger.LogError("Failed to generate password reset token for {Email}", email);
+            logger.LogError("Failed to generate password reset token for {Email}", email);
             return false;
         }
 
         var resetUrl = "https://localhost:7004/api/fundoo/auth/reset-password?token=" + Uri.EscapeDataString(token);
-        await _emailService.SendEmailAsync(email, "Reset Password", resetUrl);
+        await emailService.SendEmailAsync(email, "Reset Password", resetUrl);
 
-        _logger.LogInformation("Password reset email sent to {Email}", email);
+        logger.LogInformation("Password reset email sent to {Email}", email);
         return true;
     }
 
     public async Task<bool> ResetPassword(string token, string newPassword)
     {
-        _logger.LogInformation("Attempting password reset");
-
-        var email = await _tokenService.ValidateTokenAndGetEmail(token);
+        logger.LogInformation("Attempting password reset");
+        
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            logger.LogWarning("Login failed: Empty password provided");
+            return false;
+        }
+        var email = await tokenService.ValidateTokenAndGetEmail(token);
         if (email == null)
         {
-            _logger.LogWarning("Password reset failed: Invalid or expired token");
+            logger.LogWarning("Password reset failed: Invalid or expired token");
             return false;
         }
 
-        var user = await _userRl.FindExistsByEmail(email);
+        var user = await userRl.FindExistsByEmail(email);
         if (user == null)
         {
-            _logger.LogWarning("Password reset failed: No user found for token email {Email}", email);
+            logger.LogWarning("Password reset failed: No user found for token email {Email}", email);
             return false;
         }
 
-        user.Password = _passwordHasher.HashPassword(user, newPassword);
+        (user.Password, user.Salt) = passwordService.Hash(newPassword);
 
-        var result = await _userRl.SaveUser(user);
+        var result = await userRl.SaveUser(user);
         if (result)
-            _logger.LogInformation("Password reset successful for {Email}", email);
+            logger.LogInformation("Password reset successful for {Email}", email);
         else
-            _logger.LogError("Failed to update password in database for {Email}", email);
+            logger.LogError("Failed to update password in database for {Email}", email);
 
         return result;
     }

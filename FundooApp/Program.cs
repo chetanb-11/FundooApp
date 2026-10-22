@@ -1,6 +1,6 @@
 using System.Text;
-using Businesslayer.Interface;
-using Businesslayer.Service;
+using BusinessLayer.Interface;
+using BusinessLayer.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -51,16 +51,27 @@ public class Program
             });
         builder.Services.AddSingleton(TimeProvider.System);
 
+        
+        
         builder.Services.AddDbContext<FunDooDbContext>(options =>
             options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
 
         builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
+        builder.Services.AddStackExchangeRedisCache(obj =>
+        {
+            obj.Configuration = builder.Configuration.GetConnectionString("Redis");
+            obj.InstanceName = "fundooapp:";
+        });
+        
         builder.Services.AddScoped<IUserBl, UserBl>();
         builder.Services.AddScoped<IUserRl, UserRl>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IPasswordHasher<UserDomainModel>, PasswordHasher<UserDomainModel>>();
+        builder.Services.AddScoped<INoteBl, NoteBl>();
+        builder.Services.AddScoped<INoteRl, NoteRl>();
+        builder.Services.AddScoped<IPasswordService, PasswordService>();
         builder.Services.AddControllers();
 
 

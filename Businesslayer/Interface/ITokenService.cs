@@ -1,6 +1,6 @@
 ﻿using ModelLayer.Model;
 
-namespace Businesslayer.Interface;
+namespace BusinessLayer.Interface;
 
 public interface ITokenService
 {
