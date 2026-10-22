@@ -100,6 +100,7 @@ public class UserRl : IUserRl
             Email = entity.Email,
             ContactNumber = entity.ContactNumber,
             Password = entity.Password,
+            Salt = entity.Salt
         };
     }
 }

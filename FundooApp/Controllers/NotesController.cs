@@ -11,10 +11,8 @@ namespace FundooApp.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/fundoo/[controller]")]
-public class NotesController(INoteBl noteBl) : ControllerBase
+public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : ControllerBase
 {
-    private readonly INoteBl _noteBl = noteBl;
-
     [HttpGet]
     // [Route("notes")]
     public async Task<IActionResult> GetAllNotesByUser()
@@ -22,7 +20,10 @@ public class NotesController(INoteBl noteBl) : ControllerBase
         var (isValid, userId) = TryGetUserId();
         if (!isValid)
             return Unauthorized(new ResponseModel<string>() { Success = false, Message = "Invalid user token" });
-        var notesByUser = await _noteBl.GetAllNotesByUser(userId);
+
+        var notesByUser = await noteBl.GetAllNotesByUser(userId);
+
+        logger.LogInformation("Retrieved notes for user {UserId}", userId);
         return Ok(new ResponseModel<IEnumerable<NoteResponseDto>>()
         {
             Success = true,
@@ -30,7 +31,7 @@ public class NotesController(INoteBl noteBl) : ControllerBase
             Data = notesByUser,
         });
     }
-    
+
     [Route("{noteId:int}")]
     [HttpGet]
     public async Task<IActionResult> GetNoteById(int noteId)
@@ -38,16 +39,20 @@ public class NotesController(INoteBl noteBl) : ControllerBase
         var (isValid, userId) = TryGetUserId();
         if (!isValid)
             return Unauthorized(new ResponseModel<string>() { Success = false, Message = "Invalid user token" });
-        if (noteId == null)
+        
+        var noteById = await noteBl.GetNoteById(noteId, userId);
+
+        if (noteById == null)
         {
+            logger.LogWarning("note not found for note: {NoteId} for user: {UserId}", noteId, userId);
             return NotFound(new ResponseModel<string>
             {
                 Success = false,
                 Message = "Note not found"
             });
         }
-        var noteById = await _noteBl.GetNoteById(noteId, userId);
-        
+
+        logger.LogInformation("Retrieved note: {NoteId} for user: {UserId}", noteId, userId);
         return Ok(new ResponseModel<NoteResponseDto>()
         {
             Success = true,
@@ -62,13 +67,15 @@ public class NotesController(INoteBl noteBl) : ControllerBase
         var (isValid, userId) = TryGetUserId();
         if (!isValid)
             return Unauthorized(new ResponseModel<string> { Success = false, Message = "Invalid user token" });
-
-        var createdNote = await _noteBl.CreateAsync(noteRequestModel, userId);
+        logger.LogInformation("creating note with title {Title}", noteRequestModel.Title);
+        var createdNote = await noteBl.CreateAsync(noteRequestModel, userId);
         if (createdNote == null)
         {
+            // logger.LogWarning("Failed to create note {Title}", noteRequestModel.Title);
             return BadRequest(new ResponseModel<string> { Success = false, Message = "Failed to create note" });
         }
 
+        logger.LogInformation("note {NoteId} created", createdNote.Id);
         return Ok(new ResponseModel<NoteResponseDto>
         {
             Success = true,
@@ -83,18 +90,22 @@ public class NotesController(INoteBl noteBl) : ControllerBase
         var (isValid, userId) = TryGetUserId();
         if (!isValid)
             return Unauthorized(new ResponseModel<string> { Success = false, Message = "Invalid user token" });
+        logger.LogInformation("updating note with title {Title}", note.Title);
 
-        var updated = await _noteBl.UpdateAsync(new NoteDomainModel(){
+        var updated = await noteBl.UpdateAsync(new NoteDomainModel()
+        {
             Id = noteId,
-            Title = note.Title, 
+            Title = note.Title,
             Description = note.Description,
             UserId = userId
         });
         if (!updated)
         {
+            // logger.LogWarning("Note {NoteId} not found for user: {UserId}", noteId, userId);
             return NotFound(new ResponseModel<string> { Success = false, Message = "Note not found or update failed" });
         }
 
+        logger.LogInformation("Note {NoteId} updated for user: {UserId}", noteId, userId);
         return Ok(new ResponseModel<NoteResponseDto>
         {
             Success = true,
@@ -109,14 +120,16 @@ public class NotesController(INoteBl noteBl) : ControllerBase
         var (isValid, userId) = TryGetUserId();
         if (!isValid)
             return Unauthorized(new ResponseModel<string> { Success = false, Message = "Invalid user token" });
-
-        var result = await _noteBl.DeleteAsync(noteId, userId);
+        logger.LogInformation("deleting note {NoteId}", noteId);
+        var result = await noteBl.DeleteAsync(noteId, userId);
         if (!result)
         {
+            // logger.LogWarning("Deleting failed, note {NoteId} could not be deleted", noteId);
             return NotFound(new ResponseModel<string>
                 { Success = false, Message = "Note not found or could not be deleted" });
         }
 
+        logger.LogInformation("Deleted note {NoteId}", noteId);
         return Ok(new ResponseModel<string> { Success = true, Message = "Note deleted successfully" });
     }
 
@@ -124,19 +137,22 @@ public class NotesController(INoteBl noteBl) : ControllerBase
     [Route("{noteId:int}/archive")]
     public async Task<IActionResult> ArchiveNote(int noteId)
     {
+        logger.LogInformation("Archiving note {NoteId}", noteId);
         var (isValid, userId) = TryGetUserId();
         if (!isValid)
             return Unauthorized(new ResponseModel<string> { Success = false, Message = "Invalid user token" });
 
-        var note = await _noteBl.ArchiveNote(noteId, userId);
+        var note = await noteBl.ArchiveNote(noteId, userId);
         if (note == null)
         {
+            // logger.LogWarning("Archiving failed, note {NoteId} not Archived", noteId);
             return NotFound(new ResponseModel<string>()
             {
                 Success = false, Message = "Note not found or could not be Archived"
             });
         }
 
+        logger.LogInformation("Archived note {NoteId}", noteId);
         return Ok(new ResponseModel<NoteResponseDto>()
         {
             Success = true,
@@ -144,24 +160,26 @@ public class NotesController(INoteBl noteBl) : ControllerBase
             Data = note,
         });
     }
+
     [HttpPost]
     [Route("{noteId:int}/unarchive")]
-    
     public async Task<IActionResult> UnArchiveNote(int noteId)
     {
+        logger.LogInformation("Unarchiving note {NoteId}", noteId);
         var (isValid, userId) = TryGetUserId();
         if (!isValid)
             return Unauthorized(new ResponseModel<string> { Success = false, Message = "Invalid user token" });
-
-        var note = await _noteBl.UnArchiveNote(noteId, userId);
+        var note = await noteBl.UnArchiveNote(noteId, userId);
         if (note == null)
         {
+            // logger.LogWarning("Not unarchived note {NoteId}", noteId);
             return NotFound(new ResponseModel<string>()
             {
                 Success = false, Message = "Note not found or could not be UnArchived"
             });
         }
 
+        logger.LogInformation("unarchived note {NoteId}", noteId);
         return Ok(new ResponseModel<NoteResponseDto>()
         {
             Success = true,
@@ -169,6 +187,7 @@ public class NotesController(INoteBl noteBl) : ControllerBase
             Data = note,
         });
     }
+
     [HttpGet]
     [Route("archived")]
     public async Task<IActionResult> GetArchivedNotes()
@@ -176,9 +195,10 @@ public class NotesController(INoteBl noteBl) : ControllerBase
         var (isValid, userId) = TryGetUserId();
         if (!isValid)
             return Unauthorized(new ResponseModel<string> { Success = false, Message = "Invalid user token" });
-        
-        var notes = await _noteBl.GetArchivedNotes(userId);
 
+        var notes = await noteBl.GetArchivedNotes(userId);
+
+        logger.LogInformation("Retrieved Archived notes");
         return Ok(new ResponseModel<List<NoteResponseDto>>
         {
             Success = true,
@@ -186,18 +206,18 @@ public class NotesController(INoteBl noteBl) : ControllerBase
             Data = notes
         });
     }
-    
+
     private (bool IsValid, int UserId) TryGetUserId()
     {
         var claimValue = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ??
                          User.FindFirstValue("Sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (int.TryParse(claimValue, out var userId) && userId > 0)
         {
+            logger.LogInformation("Got user from token claims");
             return (true, userId);
         }
 
+        logger.LogWarning("Failed getting user from token claims, token invalid");
         return (false, 0);
     }
-    
-    
 }

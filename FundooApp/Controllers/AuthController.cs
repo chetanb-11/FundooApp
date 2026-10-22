@@ -6,12 +6,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using ModelLayer.Model;
+using NLog.LayoutRenderers;
 
 namespace FundooApp.Controllers;
 
 [ApiController]
 [Route("api/fundoo/[controller]")]
-public class AuthController(IUserBl userBl, IPasswordService passwordService, ILogger<AuthController> logger) : ControllerBase
+public class AuthController(IUserBl userBl, ILogger<AuthController> logger) : ControllerBase
 {
     [HttpGet]
     public IActionResult Welcome()
@@ -42,7 +43,8 @@ public class AuthController(IUserBl userBl, IPasswordService passwordService, IL
                 Data = null
             });
         }
-
+        
+        logger.LogInformation("user {UserId} registered successfully", result.Id);
         return Ok(new ResponseModel<UserResponseDto>
         {
             Success = true,
@@ -55,6 +57,8 @@ public class AuthController(IUserBl userBl, IPasswordService passwordService, IL
     [Route("login")]
     public async Task<IActionResult> LoginUser([FromBody] UserLoginReq userReq)
     {
+        logger.LogInformation("trying to login {email}", userReq.Email);
+        
         var result = await userBl.LoginUser(userReq);
         if (result == null)
         {

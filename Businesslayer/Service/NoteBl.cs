@@ -17,11 +17,15 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
 {
     private readonly IUserBl _userBl = userBl;
     private readonly INoteRl _noteRl = noteRl;
-    private readonly ILogger<NoteBl> _logger = logger;
+    // private readonly ILogger<NoteBl> logger;
 
     public async Task<NoteResponseDto?> CreateAsync(NoteRequestModel noteRequestModel, int userId)
     {
-        if (noteRequestModel == null || userId <= 0) return null;
+        if (noteRequestModel == null || userId <= 0)
+        {
+            logger.LogWarning("note req or userId not valid");
+            return null;
+        }
 
         var note = new NoteEntity
         {
@@ -34,6 +38,9 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
         if (createdNote == null) return null;
 
         await cache.RemoveAsync($"Notes:User:{userId}:All");
+        logger.LogInformation("Invalidated notes list cache for user {UserId}", userId);
+    
+
         return new NoteResponseDto
         {
             Id = createdNote.Id,
@@ -44,20 +51,34 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
 
     public async Task<bool> DeleteAsync(int noteId, int userId)
     {
-        if (noteId <= 0 || userId <= 0) return false;
+        if (noteId <= 0 || userId <= 0)
+        {
+            logger.LogWarning("noteId or userId not valid");
+            return false;
+        }
 
         var userExists = await _userBl.UserExistsByIdAsync(userId);
         if (!userExists) return false;
 
+
+        var isDeleted = await _noteRl.DeleteAsync(noteId, userId);
+        if (!isDeleted) return isDeleted;
+        
         await cache.RemoveAsync($"Notes:User:{userId}:{noteId}");
         await cache.RemoveAsync($"Notes:User:{userId}:All");
-        return await _noteRl.DeleteAsync(noteId, userId);
+        logger.LogInformation("Invalidated cache for note {NoteId} and user {UserId}", noteId, userId);
+
+        return isDeleted;
     }
 
     public async Task<bool> UpdateAsync(NoteDomainModel? noteDomainModel)
     {
-        if (noteDomainModel == null || noteDomainModel.Id <= 0 || noteDomainModel.UserId <= 0) return false;
-        
+        if (noteDomainModel == null || noteDomainModel.Id <= 0 || noteDomainModel.UserId <= 0)
+        {
+            logger.LogWarning("note doman model not valid");
+            return false;
+        }
+
         var noteId = noteDomainModel.Id;
         var userId = noteDomainModel.UserId;
         var userExists = await _userBl.UserExistsByIdAsync(userId);
@@ -73,32 +94,31 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
 
         await cache.RemoveAsync($"Notes:User:{userId}:{noteId}");
         await cache.RemoveAsync($"Notes:User:{userId}:All");
+        logger.LogInformation("Invalidated cache for note {NoteId} and user {UserId}", noteId, userId);
         return await _noteRl.UpdateAsync(noteEntity);
     }
 
     public async Task<IEnumerable<NoteResponseDto>?> GetAllNotesByUser(int userId)
     {
-        if (userId <= 0) return null;
+        if (userId <= 0)
+        {
+            logger.LogWarning("userId not valid");
+            return null;
+        }
 
         var key = $"Notes:User:{userId}:All";
         var cached = await cache.GetStringAsync(key);
         if (cached is not null)
         {
-            _logger.LogInformation("all notes found in redis with key: {key}", key);
+            logger.LogInformation("all notes found in redis with key: {key}", key);
             return JsonSerializer.Deserialize<IEnumerable<NoteResponseDto>>(cached);
         }
 
-        var notes = new List<NoteResponseDto>();
-        foreach (var note in _noteRl.GetAllNotesByUser(userId))
-        {
-            var noteResponse = new NoteResponseDto()
-            {
-                Id = note.Id,
-                Title = note.Title,
-                Description = note.Description
-            };
-            notes.Add(noteResponse);
-        }
+        var notes = _noteRl.GetAllNotesByUser(userId)
+            .Select(note => new NoteResponseDto() { Id = note.Id, Title = note.Title, Description = note.Description })
+            .ToList();
+
+        logger.LogInformation("Cached {Count} notes for user {UserId}", notes.Count, userId);
         await cache.SetStringAsync(key, JsonSerializer.Serialize(notes),
             new DistributedCacheEntryOptions
             {
@@ -110,28 +130,26 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
 
     public async Task<NoteResponseDto?> GetNoteById(int noteId, int userId)
     {
-        if (userId <= 0) return null;
+        if (userId <= 0)
+        {
+            logger.LogWarning("userId not valid");
+            return null;
+        }
 
         var key = $"Notes:User:{userId}:{noteId}";
         var cached = await cache.GetStringAsync(key);
         if (cached is not null)
         {
-            _logger.LogInformation("data found in redis with key: {key}", key);
+            logger.LogInformation("data found in redis with key: {key}", key);
             return JsonSerializer.Deserialize<NoteResponseDto>(cached);
         }
 
         var noteEntity = await _noteRl.GetNoteById(noteId, userId);
-
         if (noteEntity == null) return null;
 
-        var note = new NoteResponseDto()
-        {
-            Id = noteEntity.Id,
-            Title = noteEntity.Title,
-            Description = noteEntity.Description,
-        };
+        var note = ToDto(noteEntity);
 
-        _logger.LogInformation("data saving in redis with key: {key}", key);
+        logger.LogInformation("data saving in redis with key: {key}", key);
         await cache.SetStringAsync(key, JsonSerializer.Serialize(note)
             , new DistributedCacheEntryOptions
             {
@@ -149,20 +167,31 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
 
     private async Task<NoteResponseDto?> SetArchived(int noteId, int userId, bool isArchived)
     {
-        if (noteId <= 0 || userId <= 0) return null;
+        if (noteId <= 0 || userId <= 0)
+        {
+            logger.LogWarning("noteId or userId not valid");
+            return null;
+        }
 
         var note = await _noteRl.SetArchived(noteId, userId, isArchived);
-        await cache.RemoveAsync("Notes:User:{userId}:All");
+        logger.LogInformation("Invalidated cache for note {NoteId} and user {UserId}", noteId, userId);
+        await cache.RemoveAsync($"Notes:User:{userId}:{noteId}");
+        await cache.RemoveAsync($"Notes:User:{userId}:All");
         return note is null ? null : ToDto(note);
     }
 
     public async Task<List<NoteResponseDto>> GetArchivedNotes(int userId)
     {
-        if (userId <= 0) return [];
+        if (userId <= 0)
+        {
+            logger.LogWarning("userId not valid");
+            return [];
+        };
 
         var note = await _noteRl.GetArchived(userId);
 
-        return note.Select(ToDto).ToList();
+        return note.Select(ToDto)
+            .ToList();
     }
 
     private static NoteResponseDto ToDto(NoteEntity n) => new()

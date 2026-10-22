@@ -13,12 +13,17 @@
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
+        <PackageReference Include="NLog.Web.AspNetCore" Version="6.2.2" />
         <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Businesslayer\Businesslayer.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="nlog.config" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>
