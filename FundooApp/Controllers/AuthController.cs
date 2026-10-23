@@ -14,12 +14,20 @@ namespace FundooApp.Controllers;
 [Route("api/fundoo/[controller]")]
 public class AuthController(IUserBl userBl, ILogger<AuthController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Welcome Message
+    /// </summary>
+    /// <returns></returns>
     [HttpGet]
     public IActionResult Welcome()
     {
         return Ok("Hello from FundooController");
     }
 
+    /// <summary>
+    /// Retrieve user from Token
+    /// </summary>
+    /// <returns></returns>
     [Authorize]
     [HttpGet("me")]
     public IActionResult Me()
@@ -28,6 +36,11 @@ public class AuthController(IUserBl userBl, ILogger<AuthController> logger) : Co
         return Ok(new ResponseModel<string> { Success = true, Message = "User retrieved", Data = email });
     }
 
+    /// <summary>
+    /// Register user
+    /// </summary>
+    /// <param name="req"></param>
+    /// <returns></returns>
     [HttpPost]
     [Route("register")]
     public async Task<IActionResult> RegisterUser([FromBody] UserRegistrationReq req)
@@ -53,6 +66,11 @@ public class AuthController(IUserBl userBl, ILogger<AuthController> logger) : Co
         });
     }
 
+    /// <summary>
+    /// Login user
+    /// </summary>
+    /// <param name="userReq"></param>
+    /// <returns></returns>
     [HttpPost]
     [Route("login")]
     public async Task<IActionResult> LoginUser([FromBody] UserLoginReq userReq)
@@ -77,6 +95,11 @@ public class AuthController(IUserBl userBl, ILogger<AuthController> logger) : Co
         });
     }
 
+    /// <summary>
+    /// Reset Password
+    /// </summary>
+    /// <param name="req"></param>
+    /// <returns></returns>
     [HttpPost]
     [Route("reset-password")]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest req)
@@ -100,6 +123,11 @@ public class AuthController(IUserBl userBl, ILogger<AuthController> logger) : Co
         });
     }
 
+    /// <summary>
+    /// Forgot password
+    /// </summary>
+    /// <param name="req"></param>
+    /// <returns></returns>
     [HttpPost]
     [Route("forgot-password")]
     public async Task<IActionResult> ForgetPassword(ForgotPasswordRequest req)

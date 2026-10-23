@@ -1,6 +1,8 @@
+using System.Reflection;
 using System.Text;
 using BusinessLayer.Interface;
 using BusinessLayer.Service;
+using FundooApp.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
@@ -14,6 +16,7 @@ using NLog.Web;
 using Repository.Context;
 using Repository.Interface;
 using Repository.Service;
+using Swashbuckle.AspNetCore.SwaggerUI;
 
 namespace FundooApp;
 
@@ -26,6 +29,8 @@ public class Program
         try
         {
             var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
             log.Info("started building builder");
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -91,8 +96,16 @@ public class Program
                 {
                     Title = "Fundoo app API",
                     Version = "v1",
-                    Description = "Fundoo Notes & User Management with JWT Authentication"
+                    Description = "Fundoo Notes & User Management with JWT Authentication",
+                    Contact = new OpenApiContact()
+                    {
+                        Name = "Chetan Bansal",
+                        Email = "chetan6516@gmail.com",
+                        Url = new Uri("https://github.com/chetanb-11/fundooapp")
+                    }
                 });
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFile));
                 
                 options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
                 {
@@ -121,30 +134,19 @@ public class Program
 
             var app = builder.Build();
             log.Info("building app");
-            app.UseExceptionHandler(errorApp =>
-            {
-                errorApp.Run(async context =>
-                {
-                    var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
-                    if (exceptionFeature?.Error != null)
-                    {
-                        var exceptionLogger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-                        exceptionLogger.LogError(exceptionFeature.Error, "Unhandled exception occurred during request execution: {Message}", exceptionFeature.Error.Message);
-                    }
-
-                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    context.Response.ContentType = "application/json";
-                    await context.Response.WriteAsJsonAsync(new ResponseModel<string>
-                        { Success = false, Message = "An unexpected error occurred. Please try again later." });
-                });
-            });
+            app.UseExceptionHandler();
 
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI(c =>
+                app.UseSwaggerUI(options =>
                 {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fundoo App API v1");
+                    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Fundoo App API v1");
+                    options.DocumentTitle = "FundooApp API Docs";
+                    options.DisplayRequestDuration();
+                    options.DocExpansion(DocExpansion.None);
+                    options.EnableFilter();
+                    options.EnableTryItOutByDefault();
                 });
             }
 

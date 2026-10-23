@@ -4,26 +4,28 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-      <UserSecretsId>0c025577-bb8f-4c09-bfd1-bcffbfad9b9c</UserSecretsId>
-  </PropertyGroup>
+        <UserSecretsId>0c025577-bb8f-4c09-bfd1-bcffbfad9b9c</UserSecretsId>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591</NoWarn>
+    </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.13">
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-          <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
-        <PackageReference Include="NLog.Web.AspNetCore" Version="6.2.2" />
-        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10"/>
+        <PackageReference Include="NLog.Web.AspNetCore" Version="6.2.2"/>
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3"/>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Businesslayer\Businesslayer.csproj" />
+        <ProjectReference Include="..\Businesslayer\Businesslayer.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="nlog.config" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="nlog.config" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
 </Project>

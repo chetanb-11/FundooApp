@@ -13,6 +13,9 @@ namespace FundooApp.Controllers;
 [Route("api/fundoo/[controller]")]
 public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Retrieve all notes by user
+    /// </summary>
     [HttpGet]
     // [Route("notes")]
     public async Task<IActionResult> GetAllNotesByUser()
@@ -32,6 +35,11 @@ public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : 
         });
     }
 
+    /// <summary>
+    /// get note by id
+    /// </summary>
+    /// <param name="noteId"></param>
+    /// <returns></returns>
     [Route("{noteId:int}")]
     [HttpGet]
     public async Task<IActionResult> GetNoteById(int noteId)
@@ -61,6 +69,11 @@ public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : 
         });
     }
 
+    /// <summary>
+    /// Create a new note for logged-in user
+    /// </summary>
+    /// <param name="noteRequestModel"></param>
+    /// <returns></returns>
     [HttpPost]
     public async Task<IActionResult> CreateNote([FromBody] NoteRequestModel noteRequestModel)
     {
@@ -84,6 +97,12 @@ public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : 
         });
     }
 
+    /// <summary>
+    /// update the note by noteId
+    /// </summary>
+    /// <param name="noteId"></param>
+    /// <param name="note"></param>
+    /// <returns></returns>
     [HttpPut("{noteId:int}")]
     public async Task<IActionResult> UpdateNote([FromRoute] int noteId, [FromBody] NoteRequestModel note)
     {
@@ -114,6 +133,11 @@ public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : 
         });
     }
 
+    /// <summary>
+    /// Delete note with give noteId
+    /// </summary>
+    /// <param name="noteId"></param>
+    /// <returns></returns>
     [HttpDelete("{noteId:int}")]
     public async Task<IActionResult> DeleteNote([FromRoute] int noteId)
     {
@@ -133,6 +157,11 @@ public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : 
         return Ok(new ResponseModel<string> { Success = true, Message = "Note deleted successfully" });
     }
 
+    /// <summary>
+    /// Archive note with given NoteId
+    /// </summary>
+    /// <param name="noteId"></param>
+    /// <returns></returns>
     [HttpPost]
     [Route("{noteId:int}/archive")]
     public async Task<IActionResult> ArchiveNote(int noteId)
@@ -161,6 +190,11 @@ public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : 
         });
     }
 
+    /// <summary>
+    /// Unarchive note with given noteId
+    /// </summary>
+    /// <param name="noteId"></param>
+    /// <returns></returns>
     [HttpPost]
     [Route("{noteId:int}/unarchive")]
     public async Task<IActionResult> UnArchiveNote(int noteId)
@@ -188,6 +222,10 @@ public class NotesController(INoteBl noteBl, ILogger<NotesController> logger) : 
         });
     }
 
+    /// <summary>
+    /// Retrieve Archived notes
+    /// </summary>
+    /// <returns></returns>
     [HttpGet]
     [Route("archived")]
     public async Task<IActionResult> GetArchivedNotes()
