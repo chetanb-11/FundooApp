@@ -1,45 +1,114 @@
-﻿## [Visual Studio / Rider / .NET]
+﻿## [ .NET / C# Build Artifacts ]
 [Bb]in/
 [Oo]bj/
-[Ll]og/
-[Ll]ogs/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+artifacts/
+publish/
+project.lock.json
+project.fragment.lock.json
+*.nuget.props
+*.nuget.targets
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
 
-# User-specific files
+## [ JetBrains Rider ]
+.idea/
+*.sln.DotSettings.user
+*.DotSettings.user
+*.sln.iml
+
+## [ Visual Studio ]
+.vs/
 *.rsuser
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
-*.sln.DotSettings.user
+*.userprefs
+*.pidb
+*.booproj
+*.svclog
+*.VC.db
+*.VC.VC.opendb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*.tlog
+*.vspscc
+*.vssscc
+Generated\ Files/
 
-# JetBrains Rider
-.idea/
-*.DotSettings.user
-
-# Visual Studio Code
+## [ Visual Studio Code ]
 .vscode/
+*.code-workspace
 
-# Build results
-[Dd]ebug/
-[Rr]elease/
-x64/
-x86/
-[Aa]rms/
-[Aa]rm64/
-bld/
-[Bb]in/
-[Oo]bj/
+## [ Testing & Code Coverage ]
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+TestResult.xml
+nunit-*.xml
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+OpenCover/
+BenchmarkDotNet.Artifacts/
+
+## [ ASP.NET Core / Configuration / Secrets ]
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.*.local.json
+secrets.json
+
+## [ Logging (NLog, Serilog, etc.) ]
 [Ll]og/
 [Ll]ogs/
+*.log
 
-# .NET Core
-project.lock.json
-project.fragment.lock.json
-artifacts/
+## [ Database & Entity Framework Core ]
+*.mdf
+*.ldf
+*.ndf
 
-# ASP.NET Core
-appsettings.Development.json
-
-# OS generated files
+## [ OS Generated Files ]
 .DS_Store
+.AppleDouble
+.LSOverride
 Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.stackdump
