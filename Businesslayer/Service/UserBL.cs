@@ -1,8 +1,6 @@
 ﻿using BusinessLayer.Interface;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using ModelLayer.Model;
-using Org.BouncyCastle.Asn1.X509;
 using Repository.Interface;
 
 namespace BusinessLayer.Service;

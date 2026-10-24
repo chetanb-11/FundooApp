@@ -41,11 +41,12 @@ public class NoteRl(FunDooDbContext dbContext, ILogger<NoteRl> logger) : INoteRl
         return false;
     }
 
-    public IEnumerable<NoteEntity> GetAllNotesByUser(int userId)
+    public async Task<List<NoteEntity>> GetAllNotesByUser(int userId)
     {
-        var notes = _dbContext.Notes
-            .Where(n => n.UserId == userId && n.IsArchived == false)
-            .ToList();
+        var notes = await _dbContext.Notes
+            .AsNoTracking()
+            .Where(n => n.UserId == userId && !n.IsArchived && !n.IsTrashed)
+            .ToListAsync();
         return notes;
     }
 
@@ -85,6 +86,33 @@ public class NoteRl(FunDooDbContext dbContext, ILogger<NoteRl> logger) : INoteRl
             .OrderByDescending(u => u.Id)
             .ToListAsync();
         
+        return notes;
+    }
+
+    public async Task<NoteEntity?> SetTrashed(int noteId, int userId, bool isTrashed)
+    {
+        var note = await _dbContext.Notes
+            .FirstOrDefaultAsync(n => n.Id == noteId && n.UserId == userId);
+
+        if (note is null)
+        {
+            logger.LogWarning("note {NoteId} doesn't exist for {UserId}", noteId, userId);
+            return null;
+        }
+
+        note.IsTrashed = isTrashed;
+        await _dbContext.SaveChangesAsync();
+        return note;
+    }
+
+    public async Task<IEnumerable<NoteEntity>> GetTrashed(int userId)
+    {
+        var notes = await _dbContext.Notes
+            .AsNoTracking()
+            .Where(n => n.UserId == userId && n.IsTrashed)
+            .OrderByDescending(u => u.Id)
+            .ToListAsync();
+
         return notes;
     }
 }

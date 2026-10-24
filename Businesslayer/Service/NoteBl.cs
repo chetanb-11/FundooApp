@@ -1,21 +1,15 @@
-﻿// namespace Businesslayer;
-
-using System.Text.Json;
+﻿using System.Text.Json;
 using BusinessLayer.Interface;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-
-namespace BusinessLayer.Service;
-
-using Microsoft.Extensions.Caching.StackExchangeRedis;
-using BusinessLayer.Interface;
 using ModelLayer.Model;
 using Repository.Entity;
 using Repository.Interface;
 
-public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILogger<NoteBl> logger) : INoteBl
+namespace BusinessLayer.Service;
+
+public class NoteBl(INoteRl noteRl, IDistributedCache cache, ILogger<NoteBl> logger) : INoteBl
 {
-    private readonly IUserBl _userBl = userBl;
     private readonly INoteRl _noteRl = noteRl;
 
     private static readonly DistributedCacheEntryOptions DefaultCacheOptions = new()
@@ -48,7 +42,9 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
         {
             Id = createdNote.Id,
             Title = createdNote.Title,
-            Description = createdNote.Description
+            Description = createdNote.Description,
+            IsArchived = createdNote.IsArchived,
+            IsTrashed = createdNote.IsTrashed
         };
     }
 
@@ -59,9 +55,6 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
             logger.LogWarning("Invalid NoteId {NoteId} or UserId {UserId}", noteId, userId);
             return false;
         }
-
-        var userExists = await _userBl.UserExistsByIdAsync(userId);
-        if (!userExists) return false;
 
         var isDeleted = await _noteRl.DeleteAsync(noteId, userId);
         if (!isDeleted) return isDeleted;
@@ -83,8 +76,6 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
 
         var noteId = noteDomainModel.Id;
         var userId = noteDomainModel.UserId;
-        var userExists = await _userBl.UserExistsByIdAsync(userId);
-        if (!userExists) return false;
 
         var noteEntity = new NoteEntity
         {
@@ -121,9 +112,8 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
             return JsonSerializer.Deserialize<IEnumerable<NoteResponseDto>>(cached);
         }
 
-        var notes = _noteRl.GetAllNotesByUser(userId)
-            .Select(note => new NoteResponseDto() { Id = note.Id, Title = note.Title, Description = note.Description })
-            .ToList();
+        var noteEntities = await _noteRl.GetAllNotesByUser(userId);
+        var notes = noteEntities.Select(ToDto).ToList();
 
         logger.LogInformation("Cached {Count} notes for user {UserId}", notes.Count, userId);
         await SafeSetStringAsync(key, JsonSerializer.Serialize(notes), DefaultCacheOptions);
@@ -190,8 +180,43 @@ public class NoteBl(IUserBl userBl, INoteRl noteRl, IDistributedCache cache, ILo
         }
 
         var note = await _noteRl.GetArchived(userId);
-
         return note.Select(ToDto).ToList();
+    }
+
+    public Task<NoteResponseDto?> TrashNote(int noteId, int userId)
+        => SetTrashed(noteId, userId, true);
+
+    public Task<NoteResponseDto?> UnTrashNote(int noteId, int userId)
+        => SetTrashed(noteId, userId, false);
+
+    private async Task<NoteResponseDto?> SetTrashed(int noteId, int userId, bool isTrashed)
+    {
+        if (noteId <= 0 || userId <= 0)
+        {
+            logger.LogWarning("Invalid NoteId {NoteId} or UserId {UserId}", noteId, userId);
+            return null;
+        }
+
+        var note = await _noteRl.SetTrashed(noteId, userId, isTrashed);
+        if (note is null) return null;
+
+        await SafeRemoveCacheAsync($"Notes:User:{userId}:{noteId}");
+        await SafeRemoveCacheAsync($"Notes:User:{userId}:All");
+        logger.LogInformation("Invalidated cache for note {NoteId} and user {UserId}", noteId, userId);
+
+        return ToDto(note);
+    }
+
+    public async Task<List<NoteResponseDto>> GetTrashedNotes(int userId)
+    {
+        if (userId <= 0)
+        {
+            logger.LogWarning("Invalid UserId {UserId}", userId);
+            return [];
+        }
+
+        var notes = await _noteRl.GetTrashed(userId);
+        return notes.Select(ToDto).ToList();
     }
 
     private async Task SafeRemoveCacheAsync(string key)

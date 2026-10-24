@@ -9,5 +9,4 @@ public sealed class JwtOptions
     [Required, MinLength(32)] public string SigningKey { get; init; } = default!;
     [Required, MinLength(32)] public string ResetSigningKey { get; init; } = default!;
     public int AccessTokenMinutes { get; init; } = 10;
-    public int RefreshTokenDays { get; init; } = 7;
 }

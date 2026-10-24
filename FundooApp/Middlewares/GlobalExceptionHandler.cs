@@ -14,10 +14,10 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
         await httpContext.Response.WriteAsJsonAsync(new ProblemDetails()
             {
                 Status = status,
-                Detail = exception.Message
+                Detail = "An unexpected error occurred while processing your request."
             }
             , cancellationToken: cancellationToken);
-        logger.LogError("Unhandled exception occured : {Message} in {Source}", exception.Message, exception.Source);
+        logger.LogError(exception, "Unhandled exception occurred while processing request");
         return true;
     }
 }

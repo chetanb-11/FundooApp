@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ModelLayer.Model;
 using Repository.Context;
 using Repository.Entity;
@@ -6,14 +7,10 @@ using Repository.Interface;
 
 namespace Repository.Service;
 
-public class UserRl : IUserRl
+public class UserRl(FunDooDbContext dbContext, ILogger<UserRl> logger) : IUserRl
 {
-    private readonly FunDooDbContext _dbContext;
-
-    public UserRl(FunDooDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
+    private readonly FunDooDbContext _dbContext = dbContext;
+    private readonly ILogger<UserRl> _logger = logger;
 
     public async Task<UserDomainModel?> RegisterUserAsync(UserDomainModel user)
     {
@@ -25,8 +22,9 @@ public class UserRl : IUserRl
             await _dbContext.SaveChangesAsync();
             return ToDomain(entity);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex)
         {
+            _logger.LogError(ex, "Database update error occurred while registering user {Email}", user.Email);
             return null; 
         }
     }
@@ -73,7 +71,6 @@ public class UserRl : IUserRl
 
         return await _dbContext.SaveChangesAsync() > 0;
     }
-
 
     private static UserEntity ToEntity(UserDomainModel model)
     {

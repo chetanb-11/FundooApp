@@ -1,11 +1,10 @@
 ﻿using System.Text;
 using BusinessLayer.Interface;
 using BusinessLayer.Service;
+using FundooApp.Filters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using ModelLayer.Model;
 using ModelLayer.Model.Options;
 using Repository.Context;
 using Repository.Interface;
@@ -21,10 +20,11 @@ public static class ServiceExtensions
         services.AddScoped<IUserRl, UserRl>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ITokenService, TokenService>();
-        services.AddScoped<IPasswordHasher<UserDomainModel>, PasswordHasher<UserDomainModel>>();
         services.AddScoped<INoteBl, NoteBl>();
         services.AddScoped<INoteRl, NoteRl>();
         services.AddScoped<IPasswordService, PasswordService>();
+        services.AddScoped<ValidateUserContextFilter>();
+        services.AddHealthChecks();
         return services;
     }
 

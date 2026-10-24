@@ -1,4 +1,5 @@
 using FundooApp.Extensions;
+using FundooApp.Filters;
 using FundooApp.Middlewares;
 using ModelLayer.Model;
 using ModelLayer.Model.Options;
@@ -33,7 +34,10 @@ public class Program
             });
 
             builder.Services.AddApplicationServices();
-            builder.Services.AddControllers();
+            builder.Services.AddControllers(options =>
+            {
+                options.Filters.Add<LogExecutionTimeFilter>();
+            });
 
             builder.Logging.ClearProviders();
             builder.Host.UseNLog();
@@ -56,7 +60,8 @@ public class Program
             app.UseAuthorization();
 
             app.MapControllers();
-
+            app.MapHealthChecks("/health");
+            
             log.Info("running app");
             app.Run();
         }

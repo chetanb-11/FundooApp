@@ -1,12 +1,9 @@
-using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using BusinessLayer.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using ModelLayer.Model;
-using NLog.LayoutRenderers;
 
 namespace FundooApp.Controllers;
 
